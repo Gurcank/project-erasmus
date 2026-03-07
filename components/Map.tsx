@@ -329,7 +329,7 @@ export default function Map({ cities = [], isStatic = false }: MapProps) {
                 if (!nutsId) return;
 
                 const city = citiesRef.current.find(
-                    (c) => c.regionSlug === nutsId
+                    (c) => latinize(c.name).toLowerCase() === latinize(rawName).toLowerCase()
                 );
 
                 const displayName = city
@@ -349,18 +349,19 @@ export default function Map({ cities = [], isStatic = false }: MapProps) {
                 if (!e.features?.length) return;
 
                 const feature = e.features[0];
-                const nutsId = feature.properties?.NUTS_ID;
 
-                if (!nutsId) return;
+                const rawName =
+                    feature.properties?.NAME_LATN ||
+                    feature.properties?.NUTS_NAME;
 
                 const city = citiesRef.current.find(
-                    (c) => c.regionSlug === nutsId
+                    (c) =>
+                        latinize(c.name).toLowerCase() ===
+                        latinize(rawName).toLowerCase()
                 );
 
-                console.log("TIKLANDI:", nutsId, city);
-
-                if (city?.slug && city?.regionSlug) {
-                    router.push(`/city/${city.regionSlug}/${city.slug}`);
+                if (city?.slug) {
+                    router.push(`/c/${city.slug}`);
                 }
             });
 

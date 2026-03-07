@@ -10,7 +10,7 @@ datasource db {
 model City {
   id          String   @id @default(uuid())
   name        String
-  slug        String
+  slug        String   @unique
   regionSlug  String
   country     String
   description String?
@@ -57,6 +57,7 @@ model Review {
 
 model User {
   id            String    @id @default(uuid())
+  username      String?   @unique
   name          String?
   email         String    @unique
   password      String?   // Credentials login için

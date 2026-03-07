@@ -1,22 +1,27 @@
-
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import { prisma } from "@/lib/prisma"
-import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import WorldMap from "@/components/Map";
 import Link from "next/link";
 import { latinize } from "@/lib/latinize";
+import { revalidatePath } from "next/cache";
 
-export default async function ProfilePage() {
+export default async function ProfilePage({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}) {
 
   const session = await getServerSession(authOptions);
 
-  if (!session?.user?.email) {
-    return <div>Giriş yapmalısın</div>;
+  const { username } = await params;
+
+  if (!username) {
+    return <div>User not found</div>;
   }
 
   const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
+    where: { username },
     include: {
       reviews: {
         include: { city: true },
@@ -32,15 +37,36 @@ export default async function ProfilePage() {
     },
   });
 
-
-
   if (!user) {
     return <div>Kullanıcı bulunamadı</div>;
   }
 
-  const reviewCount = user?.reviews.length || 0;
+  const isOwnProfile = session?.user?.email === user.email;
+  const reviewCount = user.reviews.length;
   const visitedCities = user.visitedCities;
   const cityCount = visitedCities.length;
+
+  // BIO GÜNCELLEME
+  async function updateBio(formData: FormData) {
+    "use server";
+
+    const session = await getServerSession(authOptions);
+
+    if (!session?.user?.email) {
+      throw new Error("Giriş yapmalısın");
+    }
+
+    const bio = String(formData.get("bio") ?? "").trim();
+
+    const updatedUser = await prisma.user.update({
+      where: { email: session.user.email },
+      data: { bio },
+    });
+
+    revalidatePath(`/u/${updatedUser.username}`);
+  }
+
+  
 
   return (
     <div className="relative min-h-screen w-full pt-24">
@@ -61,16 +87,12 @@ export default async function ProfilePage() {
           {/* 👤 USER */}
           <div className="text-center">
             <div className="w-24 h-24 mx-auto rounded-full bg-white/20 flex items-center justify-center text-4xl text-white font-bold mb-4">
-              {session?.user?.name?.charAt(0)}
+              {user?.name?.charAt(0)}
             </div>
 
             <h2 className="text-xl font-bold text-white">
-              {session?.user?.name}
+              @{user?.username}
             </h2>
-
-            <p className="text-white/60 text-sm">
-              {session?.user?.email}
-            </p>
           </div>
 
           {/* 📊 STATS */}
@@ -91,11 +113,31 @@ export default async function ProfilePage() {
           {/* 📝 BIO */}
           <div>
             <h3 className="text-white font-semibold mb-2">Bio</h3>
-            <p className="text-white/70 text-sm bg-white/10 p-4 rounded-xl">
-              {user?.bio || "Henüz bio eklenmemiş."}
-            </p>
+            {isOwnProfile ? (
+              <form action={updateBio} className="space-y-3">
+                <textarea
+                  name="bio"
+                  defaultValue={user?.bio ?? ""}
+                  placeholder="Kendin hakkında bir şeyler yaz..."
+                  className="w-full bg-white/10 text-white text-sm p-4 rounded-xl border border-white/20 focus:outline-none focus:border-indigo-400"
+                />
+
+                <button
+                  type="submit"
+                  className="bg-indigo-600 hover:bg-indigo-500 px-4 py-2 rounded-lg text-sm"
+                >
+                  Kaydet
+                </button>
+              </form>
+            ) : (
+              <p className="text-white/70 text-sm bg-white/10 p-4 rounded-xl">
+                {user?.bio || "Henüz bio eklenmemiş."}
+              </p>
+            )}
           </div>
 
+
+          
 
         </div>
 
@@ -114,7 +156,7 @@ export default async function ProfilePage() {
               {visitedCities.map((city) => (
                 <Link
                   key={city.id}
-                  href={`/city/${city.regionSlug}/${city.slug}`}
+                  href={`/c/${city.slug}`}
                   className="bg-white/10 rounded-xl p-4 hover:bg-indigo-500/20 transition border border-white/10 hover:border-indigo-400"
                 >
                   {latinize(city.name)}
@@ -155,7 +197,7 @@ export default async function ProfilePage() {
 
                       <div>
                         <Link
-                          href={`/city/${review.city.regionSlug}/${review.city.slug}`}
+                          href={`/c/${review.city.slug}`}
                           className="text-white font-semibold text-lg hover:text-indigo-400 transition"
                         >
                           {latinize(review.city.name)}

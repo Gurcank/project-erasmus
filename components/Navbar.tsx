@@ -101,14 +101,21 @@ export default function Navbar() {
               {profileOpen && session && (
                 <div className="absolute right-0 mt-3 w-48 bg-white dark:bg-neutral-800 shadow-xl rounded-2xl border border-neutral-200 dark:border-neutral-700 overflow-hidden animate-fadeIn">
                   <Link
-                    href="/profile"
+                    href={session?.user?.username ? `/u/${session.user.username}` : "#"}
+                    onClick={(e) => {
+                      if (!session?.user?.username) {
+                        e.preventDefault();
+                      }
+                    }}
                     className="block px-5 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
                   >
                     Profil
                   </Link>
-                  <button className="w-full text-left px-5 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition">
-                    Ayarlar
-                  </button>
+
+                  <Link href="/settings" className="block px-5 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 transition"
+                  >
+                    ⚙️ Ayarlar
+                  </Link>
                   <button
                     onClick={() => signOut({ callbackUrl: "/" })}
                     className="w-full text-left px-5 py-3 hover:bg-neutral-100 dark:hover:bg-neutral-700 text-red-500 transition"
@@ -143,7 +150,7 @@ export default function Navbar() {
             </form>
 
             <Link
-              href="/profile"
+              href={session?.user?.username ? `/u/${session.user.username}` : "#"}
               onClick={() => setProfileOpen(false)}
               className="block text-center px-5 py-3 rounded-xl bg-black text-white"
             >

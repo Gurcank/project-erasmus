@@ -7,12 +7,12 @@ import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
 import { latinize } from "@/lib/latinize";
+import Link from "next/link";
 
 type Props = {
-  params: {
-    region: string;
+  params: Promise<{
     slug: string;
-  };
+  }>;
 };
 
 /* ⭐ Yıldız Component */
@@ -32,18 +32,13 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export default async function CityPage({ params }: Props) {
+export default async function CityPage({ params }: { params: Promise<{ slug: string }> }) {
 
-
-
-  const { region, slug } = await params;
+  const { slug } = await params;
 
   const city = await prisma.city.findUnique({
     where: {
-      regionSlug_slug: {
-        regionSlug: region,
-        slug: slug,
-      },
+      slug: slug
     },
     include: {
       reviews: {
@@ -57,9 +52,16 @@ export default async function CityPage({ params }: Props) {
           },
         },
         orderBy: {
-          createdAt: "desc", // en yeni üstte
+          createdAt: "desc",
         },
       },
+    },
+  });
+
+  const cities = await prisma.city.findMany({
+    select: {
+      name: true,
+      slug: true,
     },
   });
 
@@ -129,7 +131,7 @@ export default async function CityPage({ params }: Props) {
       },
     });
 
-    revalidatePath(`/city/${region}/${slug}`);
+    revalidatePath(`/c/${slug}`);
   }
 
   const unsplashRes = await fetch(
@@ -189,7 +191,7 @@ export default async function CityPage({ params }: Props) {
 
       {/* 🔵 ARKA PLAN MAP */}
       <div className="fixed inset-0 -z-10">
-        <Map isStatic />
+        <Map cities={cities} isStatic />
       </div>
 
       {/* 🔲 OVERLAY + İÇERİK */}
@@ -328,7 +330,10 @@ export default async function CityPage({ params }: Props) {
                     className="bg-zinc-950/60 border border-zinc-800 rounded-2xl p-8 hover:border-indigo-500/40 transition-all"
                   >
                     <div className="flex justify-between items-start mb-3">
-                      <div className="flex items-center gap-3">
+                      <Link
+                        href={`/profile/${review.user?.id}`}
+                        className="flex items-center gap-3 hover:opacity-80 transition"
+                      >
                         {review.user?.image ? (
                           <img
                             src={review.user.image}
@@ -345,11 +350,12 @@ export default async function CityPage({ params }: Props) {
                           <p className="font-semibold text-white">
                             {review.user?.name}
                           </p>
+
                           <p className="text-zinc-500 text-xs">
                             {new Date(review.createdAt).toLocaleDateString("tr-TR")}
                           </p>
                         </div>
-                      </div>
+                      </Link>
 
                       <span className="text-indigo-500 font-semibold text-lg">
                         ⭐ {(

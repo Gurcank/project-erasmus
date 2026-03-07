@@ -42,23 +42,85 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Şifre yanlış");
         }
 
-        return user;
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+          image: user.image,
+          username: user.username ?? undefined,
+          role: user.role,
+        };
       },
     }),
+
+
   ],
 
+  events: {
+    async createUser({ user }) {
+
+      const baseUsername =
+        (user.name || "user")
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "-")
+          .replace(/-+/g, "-");
+
+      let username = baseUsername;
+      let counter = 1;
+
+      while (true) {
+
+        const existing = await prisma.user.findUnique({
+          where: { username }
+        });
+
+        if (!existing) break;
+
+        username = `${baseUsername}-${counter}`;
+        counter++;
+
+      }
+
+      await prisma.user.update({
+        where: { id: user.id },
+        data: { username }
+      });
+
+    }
+  },
+
   session: {
-    strategy: "database", // 👈 bunu kullan
+    strategy: "jwt",
   },
 
   callbacks: {
-    async session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
-        session.user.role = user.role;
+    async jwt({ token }) {
+
+      if (token.email) {
+
+        const user = await prisma.user.findUnique({
+          where: { email: token.email }
+        });
+
+        if (user) {
+          token.username = user.username;
+          token.id = user.id;
+        }
+
       }
-      return session;
+
+      return token;
     },
+
+    async session({ session, token }) {
+
+      if (session.user) {
+        session.user.id = token.id as string;
+        session.user.username = token.username as string;
+      }
+
+      return session;
+    }
   },
 
   pages: {
