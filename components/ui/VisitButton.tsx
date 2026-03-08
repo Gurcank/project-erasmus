@@ -12,11 +12,16 @@ export default function VisitButton({ cityId, initialVisited }: { cityId: string
   const handleClick = async () => {
     if (loading) return;
     setLoading(true);
-    const res = await fetch("/api/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cityId }) });
-    const data = await res.json();
-    if (data.added) { setAnimating(true); setTimeout(() => setAnimating(false), 700); setVisited(true); }
-    if (data.removed) setVisited(false);
-    setLoading(false);
+    try {
+      const res = await fetch("/api/visit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ cityId }) });
+      const data = await res.json();
+      if (data.added) { setAnimating(true); setTimeout(() => setAnimating(false), 700); setVisited(true); }
+      if (data.removed) setVisited(false);
+    } catch {
+      // network error — silently ignore, state unchanged
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

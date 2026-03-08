@@ -30,12 +30,12 @@ model Review {
   id        String   @id @default(uuid())
   content   String
   
-  kultur        Int
-  gastronomi    Int
-  guvenlik      Int
-  geceHayati    Int
-  ulasim        Int
-  yasamMaliyeti Int
+  culture       Int
+  gastronomy    Int
+  safety        Int
+  socialLife    Int
+  transport     Int
+  costOfLiving  Int
 
   cityId    String
   city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)

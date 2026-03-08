@@ -7,8 +7,7 @@ import { useState, useRef, useEffect } from "react";
 import { usePathname } from "next/navigation";
 import { latinize } from "@/lib/latinize";
 import { useT } from "@/hooks/useT";
-
-type City = { id: string; name: string; slug: string; country: string };
+import type { City } from "@/types";
 
 export default function Navbar() {
   const router = useRouter();
@@ -25,7 +24,7 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    fetch("/api/cities").then((r) => r.json()).then(setAllCities).catch(() => {});
+    fetch("/api/cities").then((r) => r.json()).then(setAllCities).catch(() => { });
   }, []);
 
   useEffect(() => {
@@ -104,10 +103,9 @@ export default function Navbar() {
                 </Link>
               ) : (
                 <button onClick={() => setProfileOpen(!profileOpen)} className="w-10 h-10 rounded-full overflow-hidden border border-neutral-300 dark:border-neutral-600">
-                  {session.user?.image
-                    ? <img src={session.user.image} alt="profile" className="w-full h-full object-cover" />
-                    : <span className="bg-black dark:bg-white text-white dark:text-black w-full h-full flex items-center justify-center font-semibold">{session.user?.name?.charAt(0)}</span>
-                  }
+                  <span className="bg-black dark:bg-white text-white dark:text-black w-full h-full flex items-center justify-center font-semibold">
+                    {session.user?.username?.charAt(0).toUpperCase() ?? session.user?.name?.charAt(0)}
+                  </span>
                 </button>
               )}
               {profileOpen && session && (
@@ -140,7 +138,11 @@ export default function Navbar() {
                 </div>
               )}
             </div>
-            <Link href={session?.user?.username ? `/u/${session.user.username}` : "#"} onClick={() => setMenuOpen(false)} className="block text-center px-5 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-medium">{t.profile}</Link>
+            {!session ? (
+              <Link href="/login" onClick={() => setMenuOpen(false)} className="block text-center px-5 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-medium">{t.login}</Link>
+            ) : (
+              <Link href={session.user?.username ? `/u/${session.user.username}` : "#"} onClick={() => setMenuOpen(false)} className="block text-center px-5 py-3 rounded-xl bg-black dark:bg-white text-white dark:text-black font-medium">{t.profile}</Link>
+            )}
           </div>
         )}
       </div>

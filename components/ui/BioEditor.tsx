@@ -40,7 +40,7 @@ export default function BioEditor({
         <h3 className="text-gray-900 dark:text-white font-semibold text-sm uppercase tracking-wider">Bio</h3>
         {!editing && (
           <button onClick={() => { setEditing(true); setSaved(false); }} className="text-xs text-indigo-500 hover:text-indigo-400 transition flex items-center gap-1">
-            ✏️ {t.saveBio === "Kaydet" ? "Düzenle" : "Edit"}
+            ✏️ {t.editBio}
           </button>
         )}
         {saved && <span className="text-xs text-emerald-500 font-medium animate-pulse">{t.savedSuccess}</span>}

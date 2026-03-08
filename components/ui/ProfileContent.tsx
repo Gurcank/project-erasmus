@@ -4,20 +4,7 @@ import { useT } from "@/hooks/useT";
 import Link from "next/link";
 import { latinize } from "@/lib/latinize";
 import BioEditor from "@/components/ui/BioEditor";
-
-type City = { id: string; name: string; slug: string; regionSlug: string };
-type Review = {
-  id: string;
-  content: string;
-  kultur: number;
-  gastronomi: number;
-  guvenlik: number;
-  geceHayati: number;
-  ulasim: number;
-  yasamMaliyeti: number;
-  createdAt: Date;
-  city: { name: string; slug: string };
-};
+import type { City, ProfileReview } from "@/types";
 
 type Props = {
   username: string;
@@ -26,7 +13,7 @@ type Props = {
   cityCount: number;
   reviewCount: number;
   visitedCities: City[];
-  reviews: Review[];
+  reviews: ProfileReview[];
   isOwnProfile: boolean;
   updateBio: (formData: FormData) => Promise<void>;
 };
@@ -40,18 +27,14 @@ export default function ProfileContent({
   return (
     <div className="relative flex max-w-7xl mx-auto gap-8 px-6 pb-20">
 
-      {/* SOL SIDEBAR */}
       <div className="w-80 bg-white/90 dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-3xl p-8 shadow-xl flex flex-col gap-8">
-
-        {/* AVATAR */}
         <div className="text-center">
           <div className="w-24 h-24 mx-auto rounded-full bg-gray-200 dark:bg-white/20 flex items-center justify-center text-4xl text-gray-800 dark:text-white font-bold mb-4">
-            {name?.charAt(0)}
+            {username?.charAt(0).toUpperCase()}
           </div>
           <h2 className="text-xl font-bold text-gray-900 dark:text-white">@{username}</h2>
         </div>
 
-        {/* STATS */}
         <div className="space-y-4">
           <div className="bg-gray-100 dark:bg-white/10 rounded-xl p-4 text-center">
             <p className="text-2xl font-bold text-gray-900 dark:text-white">{cityCount}</p>
@@ -63,7 +46,6 @@ export default function ProfileContent({
           </div>
         </div>
 
-        {/* BIO */}
         <div>
           {isOwnProfile ? (
             <BioEditor initialBio={bio ?? ""} updateBio={updateBio} />
@@ -78,10 +60,7 @@ export default function ProfileContent({
         </div>
       </div>
 
-      {/* SAĞ ANA ALAN */}
       <div className="flex-1 space-y-8">
-
-        {/* ZİYARET EDİLEN ŞEHİRLER */}
         <div className="bg-white/90 dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-3xl p-8">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t.visitedCities}</h3>
           <div className="grid grid-cols-3 gap-4">
@@ -100,12 +79,11 @@ export default function ProfileContent({
           </div>
         </div>
 
-        {/* YAPILAN YORUMLAR */}
         <div className="bg-white/90 dark:bg-white/10 border border-gray-200 dark:border-white/20 rounded-3xl p-8">
           <h3 className="text-xl font-bold text-gray-900 dark:text-white mb-6">{t.madeReviews}</h3>
           <div className="space-y-6">
             {reviews.map((review) => {
-              const average = (review.kultur + review.gastronomi + review.guvenlik + review.geceHayati + review.ulasim + review.yasamMaliyeti) / 6;
+              const average = (review.culture + review.gastronomy + review.safety + review.socialLife + review.transport + review.costOfLiving) / 6;
               return (
                 <div key={review.id} className="bg-gray-50 dark:bg-white/10 hover:bg-gray-100 dark:hover:bg-white/15 transition rounded-2xl p-6 border border-gray-200 dark:border-white/10">
                   <div className="flex justify-between items-start mb-3">
@@ -113,9 +91,7 @@ export default function ProfileContent({
                       <Link href={`/c/${review.city.slug}`} className="text-gray-900 dark:text-white font-semibold text-lg hover:text-indigo-600 dark:hover:text-indigo-400 transition">
                         {latinize(review.city.name)}
                       </Link>
-                      <p className="text-gray-400 dark:text-white/40 text-xs">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </p>
+                      <p className="text-gray-400 dark:text-white/40 text-xs">{new Date(review.createdAt).toLocaleDateString("tr-TR")}</p>
                     </div>
                     <div className="text-indigo-600 dark:text-indigo-400 font-semibold">⭐ {average.toFixed(1)}</div>
                   </div>
@@ -128,7 +104,6 @@ export default function ProfileContent({
             )}
           </div>
         </div>
-
       </div>
     </div>
   );

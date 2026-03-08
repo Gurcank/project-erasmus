@@ -3,7 +3,7 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import SettingsAppearance from "@/components/ui/SettingsContent";
+import SettingsContent from "@/components/ui/SettingsContent";
 
 export default async function SettingsPage() {
   const session = await getServerSession(authOptions);
@@ -28,7 +28,7 @@ export default async function SettingsPage() {
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 transition-colors duration-300">
       <div className="max-w-2xl mx-auto pt-28 px-6 pb-24 space-y-6">
-        <SettingsAppearance
+        <SettingsContent
           name={user.name}
           email={user.email ?? ""}
           username={user.username}

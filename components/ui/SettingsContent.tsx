@@ -14,7 +14,7 @@ type Props = {
   updateUsername: (formData: FormData) => Promise<void>;
 };
 
-export default function SettingsAppearance({ name, email, username, role, profileUrl, updateUsername }: Props) {
+export default function SettingsContent({ name, email, username, role, profileUrl, updateUsername }: Props) {
   const t = useT();
 
   return (

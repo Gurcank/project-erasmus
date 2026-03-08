@@ -12,40 +12,39 @@ export async function POST(req: Request) {
 
   const { cityId } = await req.json();
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email },
-    include: { visitedCities: true },
-  });
-
-  if (!user) {
-    return NextResponse.json({ error: "User not found" }, { status: 404 });
+  if (!cityId || typeof cityId !== "string") {
+    return NextResponse.json({ error: "Invalid cityId" }, { status: 400 });
   }
 
-  const alreadyVisited = user.visitedCities.some(
-    (city) => city.id === cityId
-  );
-
-  if (alreadyVisited) {
-    await prisma.user.update({
-      where: { id: user.id },
-      data: {
-        visitedCities: {
-          disconnect: { id: cityId },
-        },
+  try {
+    const user = await prisma.user.findUnique({
+      where: { email: session.user.email },
+      select: {
+        id: true,
+        visitedCities: { where: { id: cityId }, select: { id: true } },
       },
     });
 
-    return NextResponse.json({ removed: true });
-  } else {
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+
+    const isAlreadyVisited = user.visitedCities.length > 0;
+
     await prisma.user.update({
       where: { id: user.id },
       data: {
-        visitedCities: {
-          connect: { id: cityId },
-        },
+        visitedCities: isAlreadyVisited
+          ? { disconnect: { id: cityId } }
+          : { connect: { id: cityId } },
       },
     });
 
-    return NextResponse.json({ added: true });
+    return NextResponse.json(isAlreadyVisited ? { removed: true } : { added: true });
+  } catch {
+    return NextResponse.json(
+      { error: "Bir hata oluştu" },
+      { status: 500 }
+    );
   }
 }

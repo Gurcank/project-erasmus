@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import WorldMap from "@/components/map/Map";
+import Map from "@/components/map/Map";
 import { revalidatePath } from "next/cache";
 import ProfileContent from "@/components/ui/ProfileContent";
 
@@ -14,8 +14,11 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   const user = await prisma.user.findUnique({
     where: { username },
     include: {
-      reviews: { include: { city: true } },
-      visitedCities: { select: { id: true, name: true, slug: true, regionSlug: true } },
+      reviews: {
+        orderBy: { createdAt: "desc" },
+        include: { city: { select: { name: true, slug: true } } },
+      },
+      visitedCities: { select: { id: true, name: true, slug: true, country: true, regionSlug: true } },
     },
   });
 
@@ -35,7 +38,7 @@ export default async function ProfilePage({ params }: { params: Promise<{ userna
   return (
     <div className="relative min-h-screen w-full pt-24">
       <div className="fixed inset-0 -z-20">
-        <WorldMap isStatic />
+        <Map isStatic />
       </div>
       <div className="fixed inset-0 bg-white/80 dark:bg-black/70 backdrop-blur-[3px] -z-10" />
 

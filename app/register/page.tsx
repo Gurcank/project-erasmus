@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import Map from "@/components/map/Map";
 
 export default function RegisterPage() {
@@ -110,9 +111,9 @@ export default function RegisterPage() {
 
             <p className="text-sm text-center text-white/80 mt-2">
               Zaten hesabın var mı?{" "}
-              <a href="/login" className="font-semibold underline">
+              <Link href="/login" className="font-semibold underline">
                 Giriş Yap
-              </a>
+              </Link>
             </p>
 
           </form>

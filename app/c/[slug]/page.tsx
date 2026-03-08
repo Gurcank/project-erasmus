@@ -10,27 +10,32 @@ import CityContent from "@/components/ui/CityContent";
 export default async function CityPage({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
 
-  const city = await prisma.city.findUnique({
-    where: { slug },
-    include: {
-      reviews: {
-        include: { user: { select: { id: true, name: true, image: true, username: true } } },
-        orderBy: { createdAt: "desc" },
+  const [city, cities, session] = await Promise.all([
+    prisma.city.findUnique({
+      where: { slug },
+      include: {
+        reviews: {
+          include: { user: { select: { id: true, name: true, image: true, username: true } } },
+          orderBy: { createdAt: "desc" },
+        },
       },
-    },
-  });
+    }),
+    prisma.city.findMany({ select: { id: true, name: true, slug: true, country: true } }),
+    getServerSession(authOptions),
+  ]);
 
-  const cities = await prisma.city.findMany({ select: { name: true, slug: true } });
   if (!city) notFound();
 
-  const cityLatin = latinize(city.name);
-  const session = await getServerSession(authOptions);
+  const latinizedCityName = latinize(city.name);
 
   const user = session?.user?.email
-    ? await prisma.user.findUnique({ where: { email: session.user.email }, include: { visitedCities: true } })
+    ? await prisma.user.findUnique({
+        where: { email: session.user.email },
+        select: { visitedCities: { where: { id: city.id }, select: { id: true } } },
+      })
     : null;
 
-  const isVisited = user?.visitedCities.some((c) => c.id === city.id) ?? false;
+  const isVisited = (user?.visitedCities.length ?? 0) > 0;
   const cityId = city.id;
 
   async function submitReview(formData: FormData) {
@@ -44,12 +49,12 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
     await prisma.review.create({
       data: {
         cityId, userId: user.id,
-        kultur: Number(formData.get("kultur")),
-        gastronomi: Number(formData.get("gastronomi")),
-        guvenlik: Number(formData.get("guvenlik")),
-        geceHayati: Number(formData.get("geceHayati")),
-        ulasim: Number(formData.get("ulasim")),
-        yasamMaliyeti: Number(formData.get("yasamMaliyeti")),
+        culture:      Number(formData.get("culture")),
+        gastronomy:   Number(formData.get("gastronomy")),
+        safety:       Number(formData.get("safety")),
+        socialLife:   Number(formData.get("socialLife")),
+        transport:    Number(formData.get("transport")),
+        costOfLiving: Number(formData.get("costOfLiving")),
         content: String(formData.get("content")),
         isApproved: true,
       },
@@ -59,7 +64,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
   }
 
   const unsplashRes = await fetch(
-    `https://api.unsplash.com/search/photos?query=${cityLatin}&orientation=landscape&per_page=1`,
+    `https://api.unsplash.com/search/photos?query=${latinizedCityName}&orientation=landscape&per_page=1`,
     { headers: { Authorization: `Client-ID ${process.env.UNSPLASH_ACCESS_KEY}` }, next: { revalidate: 86400 } }
   );
   const unsplashData = await unsplashRes.json();
@@ -67,23 +72,24 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
 
   const ratingData = await prisma.review.aggregate({
     where: { cityId: city.id },
-    _avg: { kultur: true, gastronomi: true, guvenlik: true, geceHayati: true, ulasim: true, yasamMaliyeti: true },
-    _count: true,
+    _avg: { culture: true, gastronomy: true, safety: true, socialLife: true, transport: true, costOfLiving: true },
+    _count: { id: true },
   });
 
-  const reviewCount = ratingData._count;
+  const reviewCount = ratingData._count.id ?? 0;
+  const avg = ratingData._avg;
   const avgScore = reviewCount > 0
-    ? ((ratingData._avg.kultur ?? 0) + (ratingData._avg.gastronomi ?? 0) + (ratingData._avg.guvenlik ?? 0) +
-       (ratingData._avg.geceHayati ?? 0) + (ratingData._avg.ulasim ?? 0) + (ratingData._avg.yasamMaliyeti ?? 0)) / 6
+    ? ((avg.culture ?? 0) + (avg.gastronomy ?? 0) + (avg.safety ?? 0) +
+       (avg.socialLife ?? 0) + (avg.transport ?? 0) + (avg.costOfLiving ?? 0)) / 6
     : 0;
 
-  const kategori = {
-    kultur:        Math.round(ratingData._avg.kultur ?? 0),
-    gastronomi:    Math.round(ratingData._avg.gastronomi ?? 0),
-    guvenlik:      Math.round(ratingData._avg.guvenlik ?? 0),
-    geceHayati:    Math.round(ratingData._avg.geceHayati ?? 0),
-    ulasim:        Math.round(ratingData._avg.ulasim ?? 0),
-    yasamMaliyeti: Math.round(ratingData._avg.yasamMaliyeti ?? 0),
+  const categoryRatings = {
+    culture:      Math.round(avg.culture ?? 0),
+    gastronomy:   Math.round(avg.gastronomy ?? 0),
+    safety:       Math.round(avg.safety ?? 0),
+    socialLife:   Math.round(avg.socialLife ?? 0),
+    transport:    Math.round(avg.transport ?? 0),
+    costOfLiving: Math.round(avg.costOfLiving ?? 0),
   };
 
   return (
@@ -94,12 +100,12 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
       <div className="relative z-10 bg-white/85 dark:bg-black/75 backdrop-blur-sm pt-16 min-h-screen">
         <CityContent
           cityId={city.id}
-          cityName={cityLatin}
+          cityName={latinizedCityName}
           cityImage={cityImage}
           isVisited={isVisited}
           reviewCount={reviewCount}
           avgScore={avgScore}
-          kategori={kategori}
+          categoryRatings={categoryRatings}
           reviews={city.reviews}
           submitReview={submitReview}
         />

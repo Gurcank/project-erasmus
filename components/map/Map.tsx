@@ -1,409 +1,239 @@
 "use client";
+
 import { useEffect, useRef } from "react";
 import mapboxgl from "@/lib/mapbox";
 import "mapbox-gl/dist/mapbox-gl.css";
 import { useRouter } from "next/navigation";
 import { latinize } from "@/lib/latinize";
-
+import type { City } from "@/types";
 
 type MapProps = {
-    cities?: any[];
-    isStatic?: boolean;
-
+  cities?: City[];
+  isStatic?: boolean;
 };
 
+const NUTS_LEVEL_2_COUNTRIES = ["DE", "UK"];
+
+const COUNTRY_COLORS: Record<string, string> = {
+  TR: "#dc2626", EL: "#06b6d4", BG: "#16a34a", RO: "#facc15",
+  HU: "#6b8e23", AT: "#7f1d1d", SK: "#0ea5e9", CZ: "#1e40af",
+  PL: "#dc2626", DE: "#7c3aed", FR: "#2563eb", ES: "#f97316",
+  PT: "#166534", IT: "#84cc16", CH: "#b91c1c", BE: "#f59e0b",
+  NL: "#ff7a00", LU: "#7dd3fc", UK: "#ec4899", IE: "#059669",
+  DK: "#be123c", NO: "#991b1b", SE: "#fde047", FI: "#166534",
+  EE: "#0f52ba", LV: "#7f1d1d", LT: "#d4a017", SI: "#a855f7",
+  HR: "#724916", RS: "#6b21a8", BA: "#0284c7", ME: "#f59e0b",
+  XK: "#1e3a8a", MK: "#fb7185", AL: "#b45309", CY: "#b45309",
+};
+
+const FALLBACK_REGION_COLOR = "#e5e7eb";
+
+function normalizeRegionName(name: string): string {
+  return latinize(name).toLowerCase().replace(/-/g, " ");
+}
+
+function resolveFeatureName(properties: Record<string, unknown>): string {
+  return (
+    (properties.NAME_LATN as string) ||
+    (properties.NUTS_NAME as string) ||
+    (properties.NAME_1 as string) ||
+    (properties.name as string) ||
+    ""
+  );
+}
+
+function buildCountryColorExpression(fallback: string): unknown[] {
+  const entries = Object.entries(COUNTRY_COLORS).flatMap(([code, color]) => [code, color]);
+  return ["match", ["slice", ["get", "NUTS_ID"], 0, 2], ...entries, fallback];
+}
+
 export default function Map({ cities = [], isStatic = false }: MapProps) {
-
-
-    const mapContainer = useRef<HTMLDivElement>(null);
-    const popupRef = useRef<mapboxgl.Popup | null>(null);
-    const mapRef = useRef<mapboxgl.Map | null>(null);
-    const router = useRouter();
-    const citiesRef = useRef<any[]>([]);
-    useEffect(() => {
-        citiesRef.current = cities;
-    }, [cities]);
-
-
-
-
-    useEffect(() => {
-
-        if (mapRef.current) return;
-        if (!mapContainer.current) return;
-
-        const map = new mapboxgl.Map({
-            container: mapContainer.current,
-            style: "mapbox://styles/mapbox/light-v11",
-            projection: "globe",
-            center: [10, 50],
-            zoom: 4,
-            interactive: !isStatic,
-        });
-
-        mapRef.current = map;
-
-        map.on("load", () => {
-            let hoveredCityId: number | null = null;
-
-            map.setFog({
-                color: "#000000",      // atmosfer rengi
-                "high-color": "#000000",
-                "horizon-blend": 0.02,
-                "space-color": "#000000",   // ⭐ Dünyanın arka tarafı
-                "star-intensity": 0.6
-            });
-
-            // ana water layer
-            map.setPaintProperty("water", "fill-color", "#3b82f6");
-
-            // bazı style’larda farklı layer isimleri olabilir
-            if (map.getLayer("water-shadow")) {
-                map.setPaintProperty("water-shadow", "fill-color", "#0ea5e9");
-            }
-
-            map.getStyle().layers?.forEach((layer) => {
-                if (layer.type === "symbol") {
-                    const id = layer.id;
-
-                    // şehir / bölge / mahalle yazılarını kapat
-                    if (
-                        id.includes("settlement") ||
-                        id.includes("place") ||
-                        id.includes("town") ||
-                        id.includes("village") ||
-                        id.includes("region")
-                    ) {
-                        map.setLayoutProperty(id, "visibility", "none");
-                    }
-                }
-            });
-
-            map.getStyle().layers?.forEach((layer) => {
-                if (layer.type === "symbol") {
-                    const id = layer.id;
-
-                    if (id.includes("country-label")) {
-                        map.setLayoutProperty(id, "visibility", "visible");
-                    }
-                }
-            });
-
-            popupRef.current = new mapboxgl.Popup({
-                closeButton: false,
-                closeOnClick: false,
-                className: "city-tooltip",
-                offset: 15
-            });
-
-            map.addSource("nuts", {
-                type: "geojson",
-                data: "/eu-cities/europe.geojson",
-                generateId: true
-            });
-            map.addSource("bosnia", {
-                type: "geojson",
-                data: "/eu-cities/bosnia.json",
-                generateId: true
-            });
-
-            map.addSource("kosovo", {
-                type: "geojson",
-                data: "/eu-cities/kosovo.json",
-                generateId: true
-            });
-
-            // BALKAN + TR LEVEL 3
-            const nuts2Countries = ["DE", "UK"];
-
-            const cityFilter = [
-                "any",
-
-                // 🇩🇪 🇬🇧 → NUTS 2
-                [
-                    "all",
-                    ["in", ["get", "CNTR_CODE"], ["literal", nuts2Countries]],
-                    ["==", ["get", "LEVL_CODE"], 2]
-                ],
-
-                // 🌍 diğer ülkeler → NUTS 3
-                [
-                    "all",
-                    ["!", ["in", ["get", "CNTR_CODE"], ["literal", nuts2Countries]]],
-                    ["==", ["get", "LEVL_CODE"], 3]
-                ]
-            ] as any;
-
-            // 🌍 COUNTRY FILL
-            map.addLayer({
-                id: "country-fill",
-                type: "fill",
-                source: "nuts",
-                filter: ["==", ["get", "LEVL_CODE"], 0],
-                paint: {
-                    "fill-color": "#e5e7eb",
-                    "fill-opacity": 0.2
-                }
-            });
-
-            // 🏙 CITY FILL (RENKLER)
-            map.addLayer({
-                id: "city-fill",
-                type: "fill",
-                source: "nuts",
-                filter: cityFilter,
-                paint: {
-                    "fill-color": [
-                        "match",
-                        ["slice", ["get", "NUTS_ID"], 0, 2],
-
-                        "TR", "#dc2626", // Kırmızı
-                        "EL", "#06b6d4",
-                        "BG", "#16a34a", // Yeşil
-                        "RO", "#facc15", // Altın
-                        "HU", "#6b8e23", // Zeytin
-                        "AT", "#7f1d1d", // Bordo
-                        "SK", "#0ea5e9", // Gök mavi
-                        "CZ", "#1e40af", // Koyu mavi
-                        "PL", "#dc2626",
-                        "DE", "#7c3aed", // Mor
-                        "FR", "#2563eb", // Mavi
-                        "ES", "#f97316", // Turuncu
-                        "PT", "#166534", // Koyu yeşil
-                        "IT", "#84cc16", // Fıstık yeşili
-                        "CH", "#b91c1c", // Al kırmızı
-                        "BE", "#f59e0b", // Kehribar
-                        "NL", "#ff7a00", // Parlak turuncu
-                        "LU", "#7dd3fc", // Bebek mavi
-                        "UK", "#ec4899", // Pembe
-                        "IE", "#059669", // Zümrüt
-                        "DK", "#be123c", // Gül kurusu
-                        "NO", "#991b1b", // Kan kırmızı
-                        "SE", "#fde047", // Sarı
-                        "FI", "#166534", // Orman yeşili
-                        "EE", "#0f52ba", // Safir
-                        "LV", "#7f1d1d", // Vişne çürüğü
-                        "LT", "#d4a017", // Hardal
-                        "SI", "#a855f7", // Eflatun
-                        "HR", "#724916", // Lavanta
-                        "RS", "#6b21a8", // Patlıcan moru
-                        "BA", "#0284c7", // Deniz mavisi
-                        "ME", "#f59e0b", // Bal rengi
-                        "XK", "#1e3a8a", // Kosova Çivit
-                        "MK", "#fb7185", // Mercan
-                        "AL", "#b45309", // Kiremit
-                        "CY", "#b45309", // Bakır
-
-                        "#e5e7eb" // diğer ülkeler açık gri
-                    ],
-                    "fill-opacity": [
-                        "case",
-                        ["boolean", ["feature-state", "hover"], false],
-                        0.9,
-                        0.6
-                    ]
-                }
-            });
-
-            map.addLayer({
-                id: "bosnia-fill",
-                type: "fill",
-                source: "bosnia",
-                paint: {
-                    "fill-color": "#6ee7b7",
-                    "fill-opacity": 0.6
-                }
-            });
-
-            map.addLayer({
-                id: "kosovo-fill",
-                type: "fill",
-                source: "kosovo",
-                paint: {
-                    "fill-color": "#fde68a",
-                    "fill-opacity": 0.6
-                }
-            });
-
-            map.addLayer({
-                id: "bosnia-outline",
-                type: "line",
-                source: "bosnia",
-                paint: {
-                    "line-color": "#ffffff",
-                    "line-width": 0.5
-                }
-            });
-
-            map.addLayer({
-                id: "kosovo-outline",
-                type: "line",
-                source: "kosovo",
-                paint: {
-                    "line-color": "#ffffff",
-                    "line-width": 0.5
-                }
-            });
-
-            // 🧱 CITY BORDER
-            map.addLayer({
-                id: "city-outline",
-                type: "line",
-                source: "nuts",
-                filter: cityFilter,
-                paint: {
-                    "line-color": "#ffffff",
-                    "line-width": 0.5
-                }
-            });
-
-            // ✨ HOVER BORDER
-            map.addLayer({
-                id: "city-hover",
-                type: "line",
-                source: "nuts",
-                filter: cityFilter,
-                paint: {
-                    "line-color": "#000",
-                    "line-width": [
-                        "case",
-                        ["boolean", ["feature-state", "hover"], false],
-                        3,
-                        0
-                    ]
-                }
-            });
-            map.on("mousemove", "bosnia-fill", (e) => {
-                if (!e.features?.length) return;
-
-                const name =
-                    e.features[0].properties?.NAME_1 ||
-                    e.features[0].properties?.NAME_LATN ||
-                    e.features[0].properties?.name;
-
-                if (name && popupRef.current) {
-                    popupRef.current
-                        .setLngLat(e.lngLat)
-                        .setHTML(`<strong>${name}</strong>`)
-                        .addTo(map);
-                }
-
-                map.getCanvas().style.cursor = "pointer";
-            });
-
-            map.on("mousemove", "kosovo-fill", (e) => {
-                if (!e.features?.length) return;
-
-                const name =
-                    e.features[0].properties?.NAME_1 ||
-                    e.features[0].properties?.NAME_LATN ||
-                    e.features[0].properties?.name;
-
-                if (name && popupRef.current) {
-                    popupRef.current
-                        .setLngLat(e.lngLat)
-                        .setHTML(`<strong>${name}</strong>`)
-                        .addTo(map);
-                }
-
-                map.getCanvas().style.cursor = "pointer";
-            });
-
-            // 🖱 HOVER
-            map.on("mousemove", "city-fill", (e) => {
-                if (!e.features?.length) return;
-                const id = e.features[0].id as number;
-
-                if (hoveredCityId !== null) {
-                    map.setFeatureState({ source: "nuts", id: hoveredCityId }, { hover: false });
-                }
-
-                hoveredCityId = id;
-                map.setFeatureState({ source: "nuts", id }, { hover: true });
-
-                const nutsId = e.features[0].properties?.NUTS_ID;
-                const rawName =
-                    e.features[0].properties?.NAME_LATN ||
-                    e.features[0].properties?.NUTS_NAME;
-
-                if (!nutsId) return;
-
-                const city = citiesRef.current.find(
-                    (c) =>
-                        latinize(c.name).toLowerCase().replace(/-/g, " ") ===
-                        latinize(rawName).toLowerCase().replace(/-/g, " ")
-                );
-
-                const displayName = city
-                    ? `<strong>${latinize(city.name)}</strong>`
-                    : `<strong>${latinize(rawName)}</strong>`;
-                if (displayName && popupRef.current) {
-                    popupRef.current
-                        .setLngLat(e.lngLat)
-                        .setHTML(displayName)
-                        .addTo(map);
-                }
-
-                map.getCanvas().style.cursor = "pointer";
-            });
-
-            map.on("click", "city-fill", (e) => {
-                if (!e.features?.length) return;
-
-                const feature = e.features[0];
-
-                const rawName =
-                    feature.properties?.NAME_LATN ||
-                    feature.properties?.NUTS_NAME;
-
-                if (!rawName) return;
-
-                // Önce cities listesinden gerçek slug'ı bul
-                const matched = citiesRef.current.find(
-                    (c) =>
-                        latinize(c.name).toLowerCase().replace(/-/g, " ") ===
-                        latinize(rawName).toLowerCase().replace(/-/g, " ")
-                );
-
-                const slug = matched
-                    ? matched.slug
-                    : latinize(rawName).toLowerCase().replace(/\s+/g, "-");
-
-                router.push(`/c/${slug}`);
-            });
-
-            map.on("mouseenter", "city-fill", () => {
-                map.getCanvas().style.cursor = "pointer";
-            });
-
-            map.on("mouseleave", "bosnia-fill", () => {
-                popupRef.current?.remove();
-                map.getCanvas().style.cursor = "";
-            });
-
-            map.on("mouseleave", "kosovo-fill", () => {
-                popupRef.current?.remove();
-                map.getCanvas().style.cursor = "";
-            });
-
-            map.on("mouseleave", "city-fill", () => {
-                if (hoveredCityId !== null) {
-                    map.setFeatureState({ source: "nuts", id: hoveredCityId }, { hover: false });
-                }
-                hoveredCityId = null;
-                popupRef.current?.remove();
-                map.getCanvas().style.cursor = "";
-            });
-
-        });
-
-        return () => {
-            mapRef.current?.remove();
-            mapRef.current = null;
-        };
-    }, []);
-
-
-
-    return <div ref={mapContainer} className="w-full h-screen" />;
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const popupRef = useRef<mapboxgl.Popup | null>(null);
+  const mapRef = useRef<mapboxgl.Map | null>(null);
+  const citiesRef = useRef<City[]>([]);
+  const router = useRouter();
+
+  useEffect(() => {
+    citiesRef.current = cities;
+  }, [cities]);
+
+  useEffect(() => {
+    if (mapRef.current || !mapContainerRef.current) return;
+
+    const map = new mapboxgl.Map({
+      container: mapContainerRef.current,
+      style: "mapbox://styles/mapbox/light-v11",
+      projection: "globe",
+      center: [10, 50],
+      zoom: 4,
+      interactive: !isStatic,
+    });
+
+    mapRef.current = map;
+
+    map.on("load", () => {
+      let hoveredRegionId: number | null = null;
+
+      map.setFog({
+        color: "#000000",
+        "high-color": "#000000",
+        "horizon-blend": 0.02,
+        "space-color": "#000000",
+        "star-intensity": 0.6,
+      });
+
+      map.setPaintProperty("water", "fill-color", "#3b82f6");
+      if (map.getLayer("water-shadow")) {
+        map.setPaintProperty("water-shadow", "fill-color", "#0ea5e9");
+      }
+
+      const HIDDEN_LABEL_KEYWORDS = ["settlement", "place", "town", "village", "region"];
+      map.getStyle().layers?.forEach((layer) => {
+        if (layer.type !== "symbol") return;
+        const isPlaceLabel = HIDDEN_LABEL_KEYWORDS.some((kw) => layer.id.includes(kw));
+        const isCountryLabel = layer.id.includes("country-label");
+        if (isPlaceLabel) map.setLayoutProperty(layer.id, "visibility", "none");
+        if (isCountryLabel) map.setLayoutProperty(layer.id, "visibility", "visible");
+      });
+
+      popupRef.current = new mapboxgl.Popup({
+        closeButton: false,
+        closeOnClick: false,
+        className: "city-tooltip",
+        offset: 15,
+      });
+
+      map.addSource("nuts", { type: "geojson", data: "/eu-cities/europe.geojson", generateId: true });
+      map.addSource("bosnia", { type: "geojson", data: "/eu-cities/bosnia.json", generateId: true });
+      map.addSource("kosovo", { type: "geojson", data: "/eu-cities/kosovo.json", generateId: true });
+
+      const cityFilter = [
+        "any",
+        ["all", ["in", ["get", "CNTR_CODE"], ["literal", NUTS_LEVEL_2_COUNTRIES]], ["==", ["get", "LEVL_CODE"], 2]],
+        ["all", ["!", ["in", ["get", "CNTR_CODE"], ["literal", NUTS_LEVEL_2_COUNTRIES]]], ["==", ["get", "LEVL_CODE"], 3]],
+      ];
+
+      map.addLayer({
+        id: "country-fill",
+        type: "fill",
+        source: "nuts",
+        filter: ["==", ["get", "LEVL_CODE"], 0],
+        paint: { "fill-color": FALLBACK_REGION_COLOR, "fill-opacity": 0.2 },
+      });
+
+      map.addLayer({
+        id: "city-fill",
+        type: "fill",
+        source: "nuts",
+        filter: cityFilter as mapboxgl.FilterSpecification,
+        paint: {
+          "fill-color": buildCountryColorExpression(FALLBACK_REGION_COLOR) as mapboxgl.DataDrivenPropertyValueSpecification<string>,
+          "fill-opacity": ["case", ["boolean", ["feature-state", "hover"], false], 0.9, 0.6],
+        },
+      });
+
+      const staticRegionLayers: Array<{ id: string; source: string; fillColor: string }> = [
+        { id: "bosnia", source: "bosnia", fillColor: "#6ee7b7" },
+        { id: "kosovo", source: "kosovo", fillColor: "#fde68a" },
+      ];
+
+      staticRegionLayers.forEach(({ id, source, fillColor }) => {
+        map.addLayer({ id: `${id}-fill`, type: "fill", source, paint: { "fill-color": fillColor, "fill-opacity": 0.6 } });
+        map.addLayer({ id: `${id}-outline`, type: "line", source, paint: { "line-color": "#ffffff", "line-width": 0.5 } });
+      });
+
+      map.addLayer({
+        id: "city-outline",
+        type: "line",
+        source: "nuts",
+        filter: cityFilter as mapboxgl.FilterSpecification,
+        paint: { "line-color": "#ffffff", "line-width": 0.5 },
+      });
+
+      map.addLayer({
+        id: "city-hover",
+        type: "line",
+        source: "nuts",
+        filter: cityFilter as mapboxgl.FilterSpecification,
+        paint: {
+          "line-color": "#000",
+          "line-width": ["case", ["boolean", ["feature-state", "hover"], false], 3, 0],
+        },
+      });
+
+      function showRegionPopup(e: mapboxgl.MapMouseEvent & { features?: mapboxgl.GeoJSONFeature[] }) {
+        if (!e.features?.length) return;
+        const name = resolveFeatureName(e.features[0].properties ?? {});
+        if (name && popupRef.current) {
+          popupRef.current.setLngLat(e.lngLat).setHTML(`<strong>${name}</strong>`).addTo(map);
+        }
+        map.getCanvas().style.cursor = "pointer";
+      }
+
+      function hidePopup() {
+        popupRef.current?.remove();
+        map.getCanvas().style.cursor = "";
+      }
+
+      staticRegionLayers.forEach(({ id }) => {
+        map.on("mousemove", `${id}-fill`, showRegionPopup);
+        map.on("mouseleave", `${id}-fill`, hidePopup);
+      });
+
+      map.on("mousemove", "city-fill", (e) => {
+        if (!e.features?.length) return;
+
+        const featureId = e.features[0].id as number;
+        if (hoveredRegionId !== null) {
+          map.setFeatureState({ source: "nuts", id: hoveredRegionId }, { hover: false });
+        }
+        hoveredRegionId = featureId;
+        map.setFeatureState({ source: "nuts", id: featureId }, { hover: true });
+
+        const properties = e.features[0].properties ?? {};
+        if (!properties.NUTS_ID) return;
+
+        const rawName = resolveFeatureName(properties);
+        const matchedCity = citiesRef.current.find(
+          (c) => normalizeRegionName(c.name) === normalizeRegionName(rawName)
+        );
+
+        const displayName = matchedCity ? latinize(matchedCity.name) : latinize(rawName);
+        popupRef.current?.setLngLat(e.lngLat).setHTML(`<strong>${displayName}</strong>`).addTo(map);
+        map.getCanvas().style.cursor = "pointer";
+      });
+
+      map.on("click", "city-fill", (e) => {
+        if (!e.features?.length) return;
+        const rawName = resolveFeatureName(e.features[0].properties ?? {});
+        if (!rawName) return;
+
+        const matchedCity = citiesRef.current.find(
+          (c) => normalizeRegionName(c.name) === normalizeRegionName(rawName)
+        );
+
+        const slug = matchedCity
+          ? matchedCity.slug
+          : latinize(rawName).toLowerCase().replace(/\s+/g, "-");
+
+        router.push(`/c/${slug}`);
+      });
+
+      map.on("mouseleave", "city-fill", () => {
+        if (hoveredRegionId !== null) {
+          map.setFeatureState({ source: "nuts", id: hoveredRegionId }, { hover: false });
+        }
+        hoveredRegionId = null;
+        hidePopup();
+      });
+    });
+
+    return () => {
+      mapRef.current?.remove();
+      mapRef.current = null;
+    };
+  }, []);
+
+  return <div ref={mapContainerRef} className="w-full h-screen" />;
 }

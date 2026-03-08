@@ -1,29 +1,44 @@
 import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { NextResponse } from "next/server";
 
 export async function POST(req: Request) {
-
   const session = await getServerSession(authOptions);
 
   if (!session?.user?.email) {
-    return Response.json({ error: "Unauthorized" }, { status: 401 });
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
   const { username } = await req.json();
 
-  const exists = await prisma.user.findUnique({
-    where: { username }
-  });
-
-  if (exists) {
-    return Response.json({ error: "Username alınmış" }, { status: 400 });
+  if (!username || typeof username !== "string" || username.length < 3) {
+    return NextResponse.json(
+      { error: "Kullanıcı adı en az 3 karakter olmalı" },
+      { status: 400 }
+    );
   }
 
-  await prisma.user.update({
-    where: { email: session.user.email },
-    data: { username }
-  });
+  try {
+    const isTaken = await prisma.user.findUnique({ where: { username } });
 
-  return Response.json({ success: true });
+    if (isTaken) {
+      return NextResponse.json(
+        { error: "Username alınmış" },
+        { status: 400 }
+      );
+    }
+
+    await prisma.user.update({
+      where: { email: session.user.email },
+      data: { username },
+    });
+
+    return NextResponse.json({ success: true });
+  } catch {
+    return NextResponse.json(
+      { error: "Bir hata oluştu" },
+      { status: 500 }
+    );
+  }
 }

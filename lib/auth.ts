@@ -5,6 +5,23 @@ import { PrismaAdapter } from "@auth/prisma-adapter";
 import { prisma } from "@/lib/prisma";
 import bcrypt from "bcrypt";
 
+async function generateUniqueUsername(displayName: string): Promise<string> {
+  const base = (displayName || "user")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "-")
+    .replace(/-+/g, "-");
+
+  let candidate = base;
+  let counter = 1;
+
+  while (await prisma.user.findUnique({ where: { username: candidate } })) {
+    candidate = `${base}-${counter}`;
+    counter++;
+  }
+
+  return candidate;
+}
+
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
 
@@ -33,12 +50,12 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Kullanıcı bulunamadı");
         }
 
-        const isValid = await bcrypt.compare(
+        const isPasswordValid = await bcrypt.compare(
           credentials.password,
           user.password
         );
 
-        if (!isValid) {
+        if (!isPasswordValid) {
           throw new Error("Şifre yanlış");
         }
 
@@ -52,41 +69,16 @@ export const authOptions: NextAuthOptions = {
         };
       },
     }),
-
-
   ],
 
   events: {
     async createUser({ user }) {
-
-      const baseUsername =
-        (user.name || "user")
-          .toLowerCase()
-          .replace(/[^a-z0-9]/g, "-")
-          .replace(/-+/g, "-");
-
-      let username = baseUsername;
-      let counter = 1;
-
-      while (true) {
-
-        const existing = await prisma.user.findUnique({
-          where: { username }
-        });
-
-        if (!existing) break;
-
-        username = `${baseUsername}-${counter}`;
-        counter++;
-
-      }
-
+      const username = await generateUniqueUsername(user.name ?? "");
       await prisma.user.update({
         where: { id: user.id },
-        data: { username }
+        data: { username },
       });
-
-    }
+    },
   },
 
   session: {
@@ -95,32 +87,28 @@ export const authOptions: NextAuthOptions = {
 
   callbacks: {
     async jwt({ token }) {
-
       if (token.email) {
-
         const user = await prisma.user.findUnique({
-          where: { email: token.email }
+          where: { email: token.email },
         });
 
         if (user) {
           token.username = user.username;
           token.id = user.id;
         }
-
       }
 
       return token;
     },
 
     async session({ session, token }) {
-
       if (session.user) {
         session.user.id = token.id as string;
         session.user.username = token.username as string;
       }
 
       return session;
-    }
+    },
   },
 
   pages: {

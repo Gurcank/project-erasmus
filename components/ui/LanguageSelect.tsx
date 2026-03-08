@@ -19,7 +19,6 @@ export default function LanguageSelect() {
   const changeLang = (lang: Lang) => {
     localStorage.setItem("lang", lang);
     setCurrent(lang);
-    // Tüm client component'lara dil değişti sinyali gönder
     window.dispatchEvent(new CustomEvent("langChange", { detail: lang }));
   };
 

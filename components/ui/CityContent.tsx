@@ -4,19 +4,7 @@ import { useT } from "@/hooks/useT";
 import Link from "next/link";
 import VisitButton from "@/components/ui/VisitButton";
 import StarInput from "@/components/ui/StarInput";
-
-type Review = {
-  id: string;
-  content: string;
-  kultur: number;
-  gastronomi: number;
-  guvenlik: number;
-  geceHayati: number;
-  ulasim: number;
-  yasamMaliyeti: number;
-  createdAt: Date;
-  user: { id: string; name: string | null; image: string | null; username: string | null } | null;
-};
+import type { CityReview, CategoryRatings } from "@/types";
 
 type Props = {
   cityId: string;
@@ -25,12 +13,12 @@ type Props = {
   isVisited: boolean;
   reviewCount: number;
   avgScore: number;
-  kategori: { kultur: number; gastronomi: number; guvenlik: number; geceHayati: number; ulasim: number; yasamMaliyeti: number };
-  reviews: Review[];
+  categoryRatings: CategoryRatings;
+  reviews: CityReview[];
   submitReview: (formData: FormData) => Promise<void>;
 };
 
-function Stars({ value }: { value: number }) {
+function StarDisplay({ value }: { value: number }) {
   return (
     <div className="flex gap-1">
       {[1, 2, 3, 4, 5].map((i) => (
@@ -40,24 +28,22 @@ function Stars({ value }: { value: number }) {
   );
 }
 
-export default function CityContent({ cityId, cityName, cityImage, isVisited, reviewCount, avgScore, kategori, reviews, submitReview }: Props) {
+export default function CityContent({ cityId, cityName, cityImage, isVisited, reviewCount, avgScore, categoryRatings, reviews, submitReview }: Props) {
   const t = useT();
 
   const ratingRows = [
-    { key: "yasamMaliyeti", label: t.cost,        value: kategori.yasamMaliyeti },
-    { key: "guvenlik",      label: t.safety,      value: kategori.guvenlik },
-    { key: "geceHayati",    label: t.social,      value: kategori.geceHayati },
-    { key: "kultur",        label: t.culture,     value: kategori.kultur },
-    { key: "gastronomi",    label: t.gastronomy,  value: kategori.gastronomi },
-    { key: "ulasim",        label: t.transport,   value: kategori.ulasim },
+    { key: "costOfLiving", label: t.cost, value: categoryRatings.costOfLiving },
+    { key: "safety", label: t.safety, value: categoryRatings.safety },
+    { key: "socialLife", label: t.social, value: categoryRatings.socialLife },
+    { key: "culture", label: t.culture, value: categoryRatings.culture },
+    { key: "gastronomy", label: t.gastronomy, value: categoryRatings.gastronomy },
+    { key: "transport", label: t.transport, value: categoryRatings.transport },
   ];
 
   return (
     <div className="max-w-7xl mx-auto px-8 py-20">
-
       <div className="grid md:grid-cols-2 gap-16 items-start mb-16">
 
-        {/* SOL */}
         <div>
           <div className="mb-8 flex items-center justify-between">
             <h1 className="text-5xl font-bold tracking-tight text-gray-900 dark:text-white">{cityName}</h1>
@@ -74,13 +60,12 @@ export default function CityContent({ cityId, cityName, cityImage, isVisited, re
           </div>
         </div>
 
-        {/* SAĞ: Puanlar */}
         <div className="bg-white dark:bg-zinc-900 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 space-y-6">
           <h2 className="text-2xl font-semibold text-gray-900 dark:text-white mb-4">{t.cityRatings}</h2>
           {ratingRows.map(({ key, label, value }) => (
             <div key={key} className="flex justify-between items-center">
               <span className="text-gray-700 dark:text-white">{label}</span>
-              <Stars value={value} />
+              <StarDisplay value={value} />
             </div>
           ))}
           <div className="pt-6 border-t border-gray-200 dark:border-zinc-800">
@@ -94,16 +79,15 @@ export default function CityContent({ cityId, cityName, cityImage, isVisited, re
         </div>
       </div>
 
-      {/* YORUM FORMU */}
       <form action={submitReview} className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 space-y-8 max-w-4xl mx-auto">
         <h2 className="text-xl font-semibold text-center tracking-wide text-gray-900 dark:text-white">{t.rateCity}</h2>
         <div className="grid grid-cols-2 gap-5">
-          <StarInput label={t.cost}       name="yasamMaliyeti" />
-          <StarInput label={t.safety}     name="guvenlik" />
-          <StarInput label={t.social}     name="geceHayati" />
-          <StarInput label={t.culture}    name="kultur" />
-          <StarInput label={t.gastronomy} name="gastronomi" />
-          <StarInput label={t.transport}  name="ulasim" />
+          <StarInput label={t.cost} name="costOfLiving" />
+          <StarInput label={t.safety} name="safety" />
+          <StarInput label={t.social} name="socialLife" />
+          <StarInput label={t.culture} name="culture" />
+          <StarInput label={t.gastronomy} name="gastronomy" />
+          <StarInput label={t.transport} name="transport" />
         </div>
         <textarea
           name="content"
@@ -117,7 +101,6 @@ export default function CityContent({ cityId, cityName, cityImage, isVisited, re
         </div>
       </form>
 
-      {/* YORUMLAR */}
       <div className="mt-20 w-full">
         <div className="bg-white dark:bg-zinc-900/80 border border-gray-200 dark:border-zinc-800 rounded-3xl px-6 py-14">
           <h2 className="text-3xl font-bold tracking-tight mb-12 text-gray-900 dark:text-white">{t.allReviews}</h2>
@@ -128,23 +111,17 @@ export default function CityContent({ cityId, cityName, cityImage, isVisited, re
             {reviews.map((review) => (
               <div key={review.id} className="bg-gray-50 dark:bg-zinc-950/60 border border-gray-200 dark:border-zinc-800 rounded-2xl p-8 hover:border-indigo-400/40 transition-all">
                 <div className="flex justify-between items-start mb-3">
-                  <Link href={`/u/${review.user?.username ?? review.user?.name}`} className="flex items-center gap-3 hover:opacity-80 transition">
-                    {review.user?.image ? (
-                      <img src={review.user.image} alt={review.user?.name ?? "User"} className="w-12 h-12 rounded-full object-cover" />
-                    ) : (
-                      <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-sm text-gray-700 dark:text-white">
-                        {review.user?.name?.charAt(0).toUpperCase() ?? "U"}
-                      </div>
-                    )}
+                  <Link href={review.user?.username ? `/u/${review.user.username}` : review.user?.name ? `/u/${review.user.name}` : "#"} className="flex items-center gap-3 hover:opacity-80 transition">
+                    <div className="w-12 h-12 rounded-full bg-gray-200 dark:bg-zinc-700 flex items-center justify-center text-sm text-gray-700 dark:text-white">
+                      {(review.user?.username ?? review.user?.name)?.charAt(0).toUpperCase() ?? "U"}
+                    </div>
                     <div>
-                      <p className="font-semibold text-gray-900 dark:text-white">{review.user?.name}</p>
-                      <p className="text-gray-400 dark:text-zinc-500 text-xs">
-                        {new Date(review.createdAt).toLocaleDateString()}
-                      </p>
+                      <p className="font-semibold text-gray-900 dark:text-white">{review.user?.username ? `@${review.user.username}` : review.user?.name}</p>
+                      <p className="text-gray-400 dark:text-zinc-500 text-xs">{new Date(review.createdAt).toLocaleDateString("tr-TR")}</p>
                     </div>
                   </Link>
                   <span className="text-indigo-600 dark:text-indigo-400 font-semibold text-lg">
-                    ⭐ {((review.kultur + review.gastronomi + review.guvenlik + review.geceHayati + review.ulasim + review.yasamMaliyeti) / 6).toFixed(1)}
+                    ⭐ {((review.culture + review.gastronomy + review.safety + review.socialLife + review.transport + review.costOfLiving) / 6).toFixed(1)}
                   </span>
                 </div>
 
@@ -152,16 +129,16 @@ export default function CityContent({ cityId, cityName, cityImage, isVisited, re
 
                 <div className="mt-6 flex flex-wrap gap-2 text-xs">
                   {[
-                    { label: t.cost,       value: review.yasamMaliyeti },
-                    { label: t.safety,     value: review.guvenlik },
-                    { label: t.social,     value: review.geceHayati },
-                    { label: t.culture,    value: review.kultur },
-                    { label: t.gastronomy, value: review.gastronomi },
-                    { label: t.transport,  value: review.ulasim },
+                    { label: t.cost, value: review.costOfLiving },
+                    { label: t.safety, value: review.safety },
+                    { label: t.social, value: review.socialLife },
+                    { label: t.culture, value: review.culture },
+                    { label: t.gastronomy, value: review.gastronomy },
+                    { label: t.transport, value: review.transport },
                   ].map(({ label, value }) => (
                     <div key={label} className="bg-gray-100 dark:bg-zinc-800 text-gray-700 dark:text-white px-3 py-1 rounded-lg flex items-center gap-1">
                       <span>{label}</span>
-                      <Stars value={value} />
+                      <StarDisplay value={value} />
                     </div>
                   ))}
                 </div>

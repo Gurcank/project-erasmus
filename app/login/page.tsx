@@ -3,6 +3,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import Map from "@/components/map/Map";
 
 export default function LoginPage() {
@@ -102,9 +103,9 @@ export default function LoginPage() {
 
           <p className="text-sm text-center text-white/80 mt-2">
             Hesabın yok mu?{" "}
-            <a href="/register" className="font-semibold underline">
+            <Link href="/register" className="font-semibold underline">
               Kayıt Ol
-            </a>
+            </Link>
           </p>
         </form>
 
