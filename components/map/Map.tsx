@@ -358,9 +358,16 @@ export default function Map({ cities = [], isStatic = false }: MapProps) {
 
                 if (!rawName) return;
 
-                const slug = latinize(rawName)
-                    .toLowerCase()
-                    .replace(/\s+/g, "-");
+                // Önce cities listesinden gerçek slug'ı bul
+                const matched = citiesRef.current.find(
+                    (c) =>
+                        latinize(c.name).toLowerCase().replace(/-/g, " ") ===
+                        latinize(rawName).toLowerCase().replace(/-/g, " ")
+                );
+
+                const slug = matched
+                    ? matched.slug
+                    : latinize(rawName).toLowerCase().replace(/\s+/g, "-");
 
                 router.push(`/c/${slug}`);
             });

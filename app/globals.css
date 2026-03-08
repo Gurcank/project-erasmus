@@ -3,17 +3,13 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #f9fafb;
+  --foreground: #111827;
 }
 
-
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --background: #030712;
+  --foreground: #f9fafb;
 }
 
 body {
@@ -35,12 +31,10 @@ body {
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.4);
 }
 
-/* Default beyaz kenarlığı kaldır */
 .mapboxgl-popup.city-tooltip .mapboxgl-popup-tip {
   border-top-color: rgba(24, 24, 27, 0.85);
 }
 
-/* Default padding sıfırla */
 .mapboxgl-popup-content {
   padding: 0;
 }

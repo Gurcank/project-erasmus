@@ -8,11 +8,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="tr">
-      <body className="bg-gray-100 dark:bg-gray-900 transition-colors duration-300 overflow-x-hidden">
+    <html lang="tr" className="dark">
+      <body className="bg-gray-50 dark:bg-gray-950 transition-colors duration-300 overflow-x-hidden">
         <Providers>
           <Navbar />
-
           <main className="min-h-screen">
             {children}
           </main>
