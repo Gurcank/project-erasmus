@@ -3,6 +3,8 @@ import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import ThemeToggle from "@/components/ui/ThemeToggle";
+import LanguageSelect from "@/components/ui/LanguageSelect";
 
 export default async function SettingsPage() {
 
@@ -53,12 +55,13 @@ export default async function SettingsPage() {
   }
 
   return (
-    <div className="max-w-xl mx-auto pt-32 text-white">
+    <div className="max-w-xl mx-auto pt-32 text-white space-y-12">
 
-      <h1 className="text-3xl font-bold mb-8">
+      <h1 className="text-3xl font-bold">
         Hesap Ayarları
       </h1>
 
+      {/* USERNAME */}
       <form action={updateUsername} className="space-y-4">
 
         <div>
@@ -82,6 +85,24 @@ export default async function SettingsPage() {
         </button>
 
       </form>
+
+      {/* THEME */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          Tema
+        </h2>
+
+        <ThemeToggle />
+      </div>
+
+      {/* LANGUAGE */}
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold">
+          Dil
+        </h2>
+
+        <LanguageSelect />
+      </div>
 
     </div>
   );

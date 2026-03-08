@@ -18,7 +18,7 @@ export default function Navbar() {
   const handleSearch = (e: React.FormEvent) => {
     e.preventDefault();
     if (!search) return;
-    router.push(`/city/${search.toLowerCase()}`);
+    router.push(`/c/${search.toLowerCase().replace(/\s+/g, "-")}`);
     setSearch("");
   };
 

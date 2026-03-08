@@ -40,8 +40,8 @@ model Review {
   cityId    String
   city      City     @relation(fields: [cityId], references: [id], onDelete: Cascade)
 
-  userId    String
-  user      User    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  userId    String?
+  user      User?   @relation(fields: [userId], references: [id], onDelete: SetNull)
 
   isApproved Boolean  @default(false)
   ipAddress  String?

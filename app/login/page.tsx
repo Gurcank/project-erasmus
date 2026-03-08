@@ -3,7 +3,7 @@
 import { signIn, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import Map from "@/components/Map";
+import Map from "@/components/map/Map";
 
 export default function LoginPage() {
   const { status } = useSession();
@@ -15,7 +15,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (status === "authenticated") {
-      router.replace("/profile");
+      router.replace("/");
     }
   }, [status, router]);
 
@@ -31,7 +31,7 @@ export default function LoginPage() {
     if (result?.error) {
       setError("Email veya şifre hatalı");
     } else {
-      router.replace("/profile");
+      router.replace("/");
     }
   };
 
@@ -58,7 +58,7 @@ export default function LoginPage() {
 
         {/* GOOGLE */}
         <button
-          onClick={() => signIn("google", { callbackUrl: "/profile" })}
+          onClick={() => signIn("google", { callbackUrl: "/" })}
           className="w-full py-3 mb-6 bg-white text-gray-800 font-medium rounded-xl hover:scale-[1.02] transition-all duration-200 shadow-md"
         >
           Google ile Giriş Yap

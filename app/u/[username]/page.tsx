@@ -1,7 +1,7 @@
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import WorldMap from "@/components/Map";
+import WorldMap from "@/components/map/Map";
 import Link from "next/link";
 import { latinize } from "@/lib/latinize";
 import { revalidatePath } from "next/cache";

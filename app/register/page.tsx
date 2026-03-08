@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import Map from "@/components/Map";
+import Map from "@/components/map/Map";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -58,25 +58,28 @@ export default function RegisterPage() {
             Kayıt Ol
           </h1>
 
-          <form className="flex flex-col gap-4">
-
+          <form onSubmit={handleRegister} className="flex flex-col gap-4">
             <input
               type="text"
               placeholder="Ad Soyad"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
               className="px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/60"
               required
             />
-
             <input
               type="email"
               placeholder="Email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               className="px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/60"
               required
             />
-
             <input
               type="password"
               placeholder="Şifre"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               className="px-4 py-3 rounded-xl bg-white/20 text-white placeholder-white/70 focus:outline-none focus:ring-2 focus:ring-white/60"
               required
             />

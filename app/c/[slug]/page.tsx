@@ -1,8 +1,8 @@
 import { prisma } from "@/lib/prisma";
-import StarInput from "@/components/StarInput";
+import StarInput from "@/components/ui/StarInput";
 import { notFound } from "next/navigation";
-import VisitButton from "@/components/VisitButton";
-import Map from "@/components/Map";
+import VisitButton from "@/components/ui/VisitButton";
+import Map from "@/components/map/Map";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -48,6 +48,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
               id: true,
               name: true,
               image: true,
+              username: true,
             },
           },
         },
@@ -106,6 +107,18 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
     const ulasim = Number(formData.get("ulasim"));
     const yasamMaliyeti = Number(formData.get("yasamMaliyeti"));
     const content = String(formData.get("content"));
+
+    // Daha önce yorum yapılmış mı?
+    const existingReview = await prisma.review.findFirst({
+      where: {
+        cityId: cityId,
+        userId: user.id,
+      },
+    });
+
+    if (existingReview) {
+      throw new Error("Bu şehre zaten yorum yaptınız.");
+    }
 
     await prisma.review.create({
       data: {
@@ -331,7 +344,7 @@ export default async function CityPage({ params }: { params: Promise<{ slug: str
                   >
                     <div className="flex justify-between items-start mb-3">
                       <Link
-                        href={`/profile/${review.user?.id}`}
+                        href={`/u/${review.user?.username ?? review.user?.name}`}
                         className="flex items-center gap-3 hover:opacity-80 transition"
                       >
                         {review.user?.image ? (
