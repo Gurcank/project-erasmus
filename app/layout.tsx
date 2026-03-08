@@ -1,6 +1,7 @@
 import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Providers from "./providers";
+import { Analytics } from "@vercel/analytics/next"
 
 export default function RootLayout({
   children,
@@ -15,6 +16,7 @@ export default function RootLayout({
           <main className="min-h-screen">
             {children}
           </main>
+          <Analytics />
         </Providers>
       </body>
     </html>
