@@ -1,36 +1,78 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# 🌍 ErasmusMap
 
-## Getting Started
+Erasmus öğrencileri için Avrupa şehirlerini keşfetme ve değerlendirme platformu.
 
-First, run the development server:
+**🔗 [project-erasmus.vercel.app](https://project-erasmus.vercel.app)**
 
+---
+
+## Özellikler
+
+- 🗺️ İnteraktif Avrupa haritası (Mapbox GL)
+- ⭐ Şehir değerlendirme sistemi (6 kategori: Kültür, Gastronomi, Güvenlik, Sosyal Hayat, Ulaşım, Yaşam Maliyeti)
+- 👤 Kullanıcı profili ve ziyaret edilen şehirler listesi
+- 🔐 Google ve e-posta/şifre ile giriş
+- 🌐 Türkçe / İngilizce dil desteği
+- 🌙 Koyu / Açık tema
+
+---
+
+## Teknolojiler
+
+| Katman | Teknoloji |
+|---|---|
+| Framework | Next.js 16 (App Router) |
+| Dil | TypeScript |
+| Stil | Tailwind CSS v4 |
+| Harita | Mapbox GL |
+| Auth | NextAuth.js v4 |
+| ORM | Prisma |
+| Veritabanı | PostgreSQL (Supabase) |
+| Deploy | Vercel |
+| Fotoğraf | Unsplash API |
+
+---
+
+## Kurulum
+
+### Gereksinimler
+
+- Node.js 18+
+- PostgreSQL veritabanı (Supabase önerilir)
+
+### Adımlar
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+# Repoyu klonla
+git clone https://github.com/Gurcank/project-erasmus.git
+cd project-erasmus
+
+# Bağımlılıkları yükle
+npm install
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env.local` dosyası oluştur:
+```env
+DATABASE_URL=postgresql://...
+NEXTAUTH_SECRET=...
+NEXTAUTH_URL=http://localhost:3000
+NEXT_PUBLIC_MAPBOX_TOKEN=...
+UNSPLASH_ACCESS_KEY=...
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+```
+```bash
+# Veritabanı migration
+npx prisma migrate deploy
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+# Şehirleri ekle
+npx prisma db seed
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+# Geliştirme sunucusunu başlat
+npm run dev
+```
 
-## Learn More
+---
 
-To learn more about Next.js, take a look at the following resources:
+## Lisans
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+MIT
